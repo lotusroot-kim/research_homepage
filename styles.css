@@ -54,6 +54,7 @@ a {
   gap: 16px;
   flex-wrap: wrap;
   font-size: 14px;
+  margin-right: 16px;
 }
 
 .nav a {
@@ -101,7 +102,7 @@ a {
 }
 
 h1 {
-  font-size: 40px;
+  font-size: 32px;
   margin: 0 0 12px;
 }
 
