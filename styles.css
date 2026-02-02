@@ -266,21 +266,30 @@ h1 {
   color: #6b7280;
 }
 
-.stats-chart {
-  height: 140px;
-  border-radius: 12px;
-  border: 1px dashed #d1d5db;
-  background: #f9fafb;
+.stats-metrics {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 24px;
+  margin: 6px 0 6px;
 }
 
-.stats-placeholder {
+.stats-item {
+  min-width: 120px;
+}
+
+.stats-value {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.stats-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.stats-footnote {
   font-size: 12px;
   color: #9ca3af;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin-top: 6px;
 }
 
 .panel h3 {

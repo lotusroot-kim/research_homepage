@@ -157,21 +157,6 @@
         </div>
       </section>
 
-      <section id="analytics" class="section">
-        <div class="container">
-          <h2>Visitor Trends</h2>
-          <div class="panel stats-panel">
-            <div class="stats-header">
-              <div class="stats-title">Daily / Weekly Visitors</div>
-              <div class="stats-note">Connect analytics to show live data.</div>
-            </div>
-            <div class="stats-chart">
-              <div class="stats-placeholder">Chart</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section id="publications" class="section">
         <div class="container">
           <h2>Selected Publications</h2>
@@ -784,6 +769,34 @@
           </div>
         </div>
       </section>
+
+      <section id="analytics" class="section">
+        <div class="container">
+          <h2>Visitor Trends</h2>
+          <div class="panel stats-panel">
+            <div class="stats-header">
+              <div class="stats-title">Daily / Weekly Visitors</div>
+              <div class="stats-note">
+                Unique visits, cached ~30 minutes.
+              </div>
+            </div>
+            <div class="stats-metrics">
+              <div class="stats-item">
+                <div class="stats-value" id="daily-count">--</div>
+                <div class="stats-label">Last 24h</div>
+              </div>
+              <div class="stats-item">
+                <div class="stats-value" id="weekly-count">--</div>
+                <div class="stats-label">Last 7d</div>
+              </div>
+            </div>
+            <div class="stats-footnote">
+              If counts stay empty, enable “Allow adding visitor counts” in
+              GoatCounter settings.
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="site-footer">
@@ -791,5 +804,44 @@
         <div>© 2026 Youngeun Kim. All rights reserved.</div>
       </div>
     </footer>
+    <script>
+      (function () {
+        var site = "https://youngryan1993.goatcounter.com";
+        var path = encodeURIComponent(location.pathname || "/");
+        var today = new Date();
+        var toYMD = function (d) {
+          return d.toISOString().slice(0, 10);
+        };
+        var dayStart = new Date(today);
+        dayStart.setDate(dayStart.getDate() - 1);
+        var weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - 7);
+
+        var fetchCount = function (start, end, targetId) {
+          var url =
+            site +
+            "/counter/" +
+            path +
+            ".json?start=" +
+            start +
+            "&end=" +
+            end;
+          fetch(url)
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (data) {
+              var el = document.getElementById(targetId);
+              if (el && data && typeof data.count_unique === "number") {
+                el.textContent = data.count_unique.toString();
+              }
+            })
+            .catch(function () {});
+        };
+
+        fetchCount(toYMD(dayStart), toYMD(today), "daily-count");
+        fetchCount(toYMD(weekStart), toYMD(today), "weekly-count");
+      })();
+    </script>
   </body>
 </html>
