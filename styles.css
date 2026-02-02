@@ -245,6 +245,44 @@ h1 {
   background: #ffffff;
 }
 
+.stats-panel {
+  max-width: 520px;
+}
+
+.stats-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stats-title {
+  font-weight: 700;
+}
+
+.stats-note {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.stats-chart {
+  height: 140px;
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-placeholder {
+  font-size: 12px;
+  color: #9ca3af;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .panel h3 {
   margin-top: 0;
   font-size: 18px;
