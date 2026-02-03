@@ -109,6 +109,10 @@
               <span class="news-text">Three papers are accepted to ECCV 2024.</span>
             </li>
             <li>
+              <span class="news-date">July</span>
+              <span class="news-text">One paper is accepted to MICRO 2024.</span>
+            </li>
+            <li>
               <span class="news-date">May</span>
               <span class="news-text">
                 I joined Meta Reality Labs as a Machine Learning Research Scientist.
@@ -832,11 +836,17 @@
             })
             .then(function (data) {
               var el = document.getElementById(targetId);
-              if (el && data && typeof data.count_unique === "number") {
+              if (!el) return;
+              if (data && typeof data.count_unique === "number") {
                 el.textContent = data.count_unique.toString();
+              } else {
+                el.textContent = "0";
               }
             })
-            .catch(function () {});
+            .catch(function () {
+              var el = document.getElementById(targetId);
+              if (el) el.textContent = "0";
+            });
         };
 
         fetchCount(toYMD(dayStart), toYMD(today), "daily-count");
