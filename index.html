@@ -811,7 +811,9 @@
     <script>
       (function () {
         var site = "https://youngryan1993.goatcounter.com";
-        var path = encodeURIComponent(location.pathname || "/");
+        var rawPath = location.pathname || "/";
+        var normalizedPath = rawPath.replace(/\/index\.html?$/, "/");
+        var path = encodeURIComponent(normalizedPath);
         var today = new Date();
         var toYMD = function (d) {
           return d.toISOString().slice(0, 10);
@@ -832,6 +834,9 @@
             end;
           fetch(url)
             .then(function (res) {
+              if (!res.ok) {
+                throw new Error("Failed to fetch GoatCounter data");
+              }
               return res.json();
             })
             .then(function (data) {
