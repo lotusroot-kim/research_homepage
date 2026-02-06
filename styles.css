@@ -272,6 +272,15 @@ h1 {
   margin: 6px 0 6px;
 }
 
+.stats-badge {
+  margin: 8px 0 6px;
+}
+
+.stats-badge img {
+  display: inline-block;
+  height: 22px;
+}
+
 .stats-item {
   min-width: 120px;
 }

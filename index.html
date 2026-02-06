@@ -794,6 +794,14 @@
                 <div class="stats-label">Last 7d</div>
               </div>
             </div>
+            <div class="stats-badge">
+              <img
+                id="hits-badge"
+                alt="Visitor count badge"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              />
+            </div>
             <div class="stats-footnote">
               If counts stay empty, enable “Allow adding visitor counts” in
               GoatCounter settings.
@@ -814,6 +822,7 @@
         var rawPath = location.pathname || "/";
         var normalizedPath = rawPath.replace(/\/index\.html?$/, "/");
         var path = encodeURIComponent(normalizedPath);
+        var badgeUrl = encodeURIComponent(location.origin + normalizedPath);
         var today = new Date();
         var toYMD = function (d) {
           return d.toISOString().slice(0, 10);
@@ -856,6 +865,14 @@
 
         fetchCount(toYMD(dayStart), toYMD(today), "daily-count");
         fetchCount(toYMD(weekStart), toYMD(today), "weekly-count");
+
+        var badge = document.getElementById("hits-badge");
+        if (badge) {
+          badge.src =
+            "https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=" +
+            badgeUrl +
+            "&count_bg=%23111827&title_bg=%23E5E7EB&icon=&icon_color=%23FFFFFF&title=visits&edge_flat=true";
+        }
       })();
     </script>
   </body>
