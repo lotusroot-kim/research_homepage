@@ -799,7 +799,6 @@
                 id="hits-badge"
                 alt="Visitor count badge"
                 loading="lazy"
-                referrerpolicy="no-referrer"
               />
             </div>
             <div class="stats-footnote">
@@ -822,7 +821,11 @@
         var rawPath = location.pathname || "/";
         var normalizedPath = rawPath.replace(/\/index\.html?$/, "/");
         var path = encodeURIComponent(normalizedPath);
-        var badgeUrl = encodeURIComponent(location.origin + normalizedPath);
+        var pageHref = (location.href || "").split("#")[0].split("?")[0];
+        pageHref = pageHref.replace(/\/index\.html?$/, "/");
+        var badgeUrl = encodeURIComponent(pageHref);
+        var pageId =
+          (location.hostname ? location.hostname : "local") + normalizedPath;
         var today = new Date();
         var toYMD = function (d) {
           return d.toISOString().slice(0, 10);
@@ -868,10 +871,23 @@
 
         var badge = document.getElementById("hits-badge");
         if (badge) {
-          badge.src =
+          var hitsUrl =
             "https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=" +
             badgeUrl +
             "&count_bg=%23111827&title_bg=%23E5E7EB&icon=&icon_color=%23FFFFFF&title=visits&edge_flat=true";
+          var fallbackUrl =
+            "https://visitor-badge.laobi.icu/badge?page_id=" +
+            encodeURIComponent(pageId);
+
+          if (location.protocol === "file:") {
+            badge.src = fallbackUrl;
+          } else {
+            badge.src = hitsUrl;
+            badge.onerror = function () {
+              badge.onerror = null;
+              badge.src = fallbackUrl;
+            };
+          }
         }
       })();
     </script>
