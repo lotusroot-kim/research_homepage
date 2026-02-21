@@ -388,6 +388,11 @@ h1 {
   font-size: 14px;
 }
 
+.pub-meta sup {
+  font-size: 0.7em;
+  vertical-align: super;
+}
+
 .pub-links {
   font-size: 14px;
   margin-top: 6px;
