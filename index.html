@@ -83,6 +83,12 @@
           <ul class="news-list">
             <li><span class="news-year">2026</span></li>
             <li>
+              <span class="news-date">Apr</span>
+              <span class="news-text">
+                One paper is selected as ICML 2026 Spotlight.
+              </span>
+            </li>
+            <li>
               <span class="news-date">Feb</span>
               <span class="news-text">Two papers are accepted to CVPR 2026.</span>
             </li>
@@ -186,6 +192,35 @@
             <li class="pub-item">
               <div class="pub-figure">
                 <img
+                  src="images/publications/2026-realtimevis-icml.png"
+                  alt="Fig. 1: Real-Time Visual Attribution Streaming in Thinking Model"
+                  loading="lazy"
+                  onerror="this.closest('.pub-figure').classList.add('missing'); this.remove();"
+                />
+                <span class="pub-figure-fallback">Fig. 1</span>
+              </div>
+              <div class="pub-body">
+                <div class="pub-title">
+                  Real-Time Visual Attribution Streaming in Thinking Model
+                </div>
+                <div class="pub-meta">
+                  S Kang, W Han, JH Kim, JY Kim, Y Kim, SJ Hwang · ICML 2026
+                  (Spotlight)
+                </div>
+                <div class="pub-links">
+                  <a
+                    href="https://arxiv.org/abs/2604.16587"
+                    class="inline-link"
+                    target="_blank"
+                    rel="noreferrer"
+                    >arXiv</a
+                  >
+                </div>
+              </div>
+            </li>
+            <li class="pub-item">
+              <div class="pub-figure">
+                <img
                   src="images/publications/2026-zoo-prune.png"
                   alt="Fig. 1: ZOO-Prune"
                   loading="lazy"
@@ -200,7 +235,7 @@
                 </div>
                 <div class="pub-meta">
                   Y Kim<sup>*</sup>, Y Zhang<sup>*</sup>, H Liu, A Jung, S Lee,
-                  S Hong · CVPR 2026 (accepted)
+                  S Hong · CVPR 2026
                 </div>
                 <div class="pub-links"></div>
               </div>
@@ -223,7 +258,6 @@
                 <div class="pub-meta">
                   SS Ghosal<sup>*</sup>, Y Kim<sup>*</sup>, Z Li, R Chaudhry,
                   L Xu, H Zhang, J Zablocki, Y Xing, Q Zhang · CVPR 2026
-                  (accepted)
                 </div>
                 <div class="pub-links"></div>
               </div>
@@ -841,6 +875,10 @@
             </div>
             <div class="stats-metrics">
               <div class="stats-item">
+                <div class="stats-value" id="total-count">--</div>
+                <div class="stats-label">All-time</div>
+              </div>
+              <div class="stats-item">
                 <div class="stats-value" id="daily-count">--</div>
                 <div class="stats-label">Last 24h</div>
               </div>
@@ -849,16 +887,11 @@
                 <div class="stats-label">Last 7d</div>
               </div>
             </div>
-            <div class="stats-badge">
-              <img
-                id="hits-badge"
-                alt="Visitor count badge"
-                loading="lazy"
-              />
+            <div class="stats-source" id="stats-source">
+              Loading unique stats (GoatCounter)...
             </div>
             <div class="stats-footnote">
-              If counts stay empty, enable “Allow adding visitor counts” in
-              GoatCounter settings.
+              If unique stats are unavailable, pageview fallback is shown.
             </div>
           </div>
         </div>
@@ -876,21 +909,31 @@
         var rawPath = location.pathname || "/";
         var normalizedPath = rawPath.replace(/\/index\.html?$/, "/");
         var path = encodeURIComponent(normalizedPath);
-        var pageHref = (location.href || "").split("#")[0].split("?")[0];
-        pageHref = pageHref.replace(/\/index\.html?$/, "/");
-        var badgeUrl = encodeURIComponent(pageHref);
-        var pageId =
-          (location.hostname ? location.hostname : "local") + normalizedPath;
+        var sourceEl = document.getElementById("stats-source");
+        var host = location.hostname || "local";
+        var safePath = normalizedPath.replace(/[^a-zA-Z0-9_-]/g, "_");
+        var namespace = "youngeunkim-homepage-" + host.replace(/\./g, "-");
         var today = new Date();
         var toYMD = function (d) {
           return d.toISOString().slice(0, 10);
+        };
+        var setText = function (id, value) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = String(value);
+        };
+        var getISOWeek = function (d) {
+          var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+          var dayNum = date.getUTCDay() || 7;
+          date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+          var yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+          return Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
         };
         var dayStart = new Date(today);
         dayStart.setDate(dayStart.getDate() - 1);
         var weekStart = new Date(today);
         weekStart.setDate(weekStart.getDate() - 7);
 
-        var fetchCount = function (start, end, targetId) {
+        var fetchGoatCount = function (start, end) {
           var url =
             site +
             "/counter/" +
@@ -899,7 +942,7 @@
             start +
             "&end=" +
             end;
-          fetch(url)
+          return fetch(url)
             .then(function (res) {
               if (!res.ok) {
                 throw new Error("Failed to fetch GoatCounter data");
@@ -907,43 +950,84 @@
               return res.json();
             })
             .then(function (data) {
-              var el = document.getElementById(targetId);
-              if (!el) return;
               if (data && typeof data.count_unique === "number") {
-                el.textContent = data.count_unique.toString();
-              } else {
-                el.textContent = "0";
+                return data.count_unique;
               }
-            })
-            .catch(function () {
-              var el = document.getElementById(targetId);
-              if (el) el.textContent = "0";
+              throw new Error("Invalid GoatCounter data");
             });
         };
 
-        fetchCount(toYMD(dayStart), toYMD(today), "daily-count");
-        fetchCount(toYMD(weekStart), toYMD(today), "weekly-count");
+        var hitCountApi = function (key) {
+          var url = "https://api.countapi.xyz/hit/" + namespace + "/" + key;
+          return fetch(url)
+            .then(function (res) {
+              if (!res.ok) {
+                throw new Error("CountAPI failed");
+              }
+              return res.json();
+            })
+            .then(function (data) {
+              if (data && typeof data.value === "number") {
+                return data.value;
+              }
+              throw new Error("Invalid CountAPI data");
+            });
+        };
 
-        var badge = document.getElementById("hits-badge");
-        if (badge) {
-          var hitsUrl =
-            "https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=" +
-            badgeUrl +
-            "&count_bg=%23111827&title_bg=%23E5E7EB&icon=&icon_color=%23FFFFFF&title=visits&edge_flat=true";
-          var fallbackUrl =
-            "https://visitor-badge.laobi.icu/badge?page_id=" +
-            encodeURIComponent(pageId);
+        var getCountApi = function (key) {
+          var url = "https://api.countapi.xyz/get/" + namespace + "/" + key;
+          return fetch(url)
+            .then(function (res) {
+              if (!res.ok) {
+                throw new Error("CountAPI key not found");
+              }
+              return res.json();
+            })
+            .then(function (data) {
+              if (data && typeof data.value === "number") {
+                return data.value;
+              }
+              throw new Error("Invalid CountAPI data");
+            });
+        };
 
-          if (location.protocol === "file:") {
-            badge.src = fallbackUrl;
-          } else {
-            badge.src = hitsUrl;
-            badge.onerror = function () {
-              badge.onerror = null;
-              badge.src = fallbackUrl;
-            };
-          }
-        }
+        getCountApi("all-" + safePath)
+          .then(function (v) {
+            setText("total-count", v);
+          })
+          .catch(function () {
+            setText("total-count", "0");
+          });
+
+        Promise.all([
+          fetchGoatCount(toYMD(dayStart), toYMD(today)),
+          fetchGoatCount(toYMD(weekStart), toYMD(today)),
+        ])
+          .then(function (counts) {
+            setText("daily-count", counts[0]);
+            setText("weekly-count", counts[1]);
+            if (sourceEl) sourceEl.textContent = "Source: GoatCounter unique visitors";
+          })
+          .catch(function () {
+            var weekKey = "w" + today.getFullYear() + "-" + getISOWeek(today) + safePath;
+            Promise.all([
+              hitCountApi("all-" + safePath),
+              hitCountApi("d" + toYMD(today) + safePath),
+              hitCountApi(weekKey),
+            ])
+              .then(function (values) {
+                setText("total-count", values[0]);
+                setText("daily-count", values[1]);
+                setText("weekly-count", values[2]);
+                if (sourceEl) sourceEl.textContent = "Source: CountAPI pageviews fallback";
+              })
+              .catch(function () {
+                setText("total-count", "-");
+                setText("daily-count", "-");
+                setText("weekly-count", "-");
+                if (sourceEl) sourceEl.textContent = "Visitor counter temporarily unavailable";
+              });
+          });
       })();
     </script>
   </body>

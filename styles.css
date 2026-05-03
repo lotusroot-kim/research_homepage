@@ -272,13 +272,10 @@ h1 {
   margin: 6px 0 6px;
 }
 
-.stats-badge {
+.stats-source {
   margin: 8px 0 6px;
-}
-
-.stats-badge img {
-  display: inline-block;
-  height: 22px;
+  font-size: 12px;
+  color: #6b7280;
 }
 
 .stats-item {
