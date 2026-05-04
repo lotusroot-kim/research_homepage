@@ -886,7 +886,7 @@
             <div class="stats-header">
               <div class="stats-title">Daily / Weekly Visitors</div>
               <div class="stats-note">
-                Unique visits, cached ~30 minutes.
+                Page views via public counter API.
               </div>
             </div>
             <div class="stats-metrics">
@@ -904,10 +904,10 @@
               </div>
             </div>
             <div class="stats-source" id="stats-source">
-              Loading unique stats (GoatCounter)...
+              Loading visitor stats...
             </div>
             <div class="stats-footnote">
-              If unique stats are unavailable, pageview fallback is shown.
+              Counts may take a few seconds to refresh.
             </div>
           </div>
         </div>
@@ -921,16 +921,19 @@
     </footer>
     <script>
       (function () {
-        var site = "https://youngryan1993.goatcounter.com";
         var rawPath = location.pathname || "/";
         var normalizedPath = rawPath.replace(/\/index\.html?$/, "/");
         var sourceEl = document.getElementById("stats-source");
         var host = location.hostname || "local";
         var safePath = normalizedPath.replace(/[^a-zA-Z0-9_-]/g, "_");
-        var namespace = "youngeunkim-homepage-" + host.replace(/\./g, "-");
+        var namespace = "youngeunkim-homepage-" + host.replace(/\./g, "-") + safePath;
+        var apiBase = "https://api.countapi.xyz";
         var today = new Date();
         var toYMD = function (d) {
           return d.toISOString().slice(0, 10);
+        };
+        var pad2 = function (n) {
+          return n < 10 ? "0" + n : String(n);
         };
         var setText = function (id, value) {
           var el = document.getElementById(id);
@@ -943,62 +946,21 @@
           var yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
           return Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
         };
-        var dayStart = new Date(today);
-        dayStart.setDate(dayStart.getDate() - 1);
-        var weekStart = new Date(today);
-        weekStart.setDate(weekStart.getDate() - 7);
-
-        var goatPaths = [normalizedPath];
-        if (normalizedPath === "/") {
-          goatPaths.push("/index.html");
-        } else if (normalizedPath.charAt(normalizedPath.length - 1) === "/") {
-          goatPaths.push(normalizedPath + "index.html");
-        } else {
-          goatPaths.push(normalizedPath + "/");
-        }
-        goatPaths.push("/");
-        goatPaths = goatPaths.filter(function (value, index, self) {
-          return self.indexOf(value) === index;
-        });
-
-        var fetchGoatCountFromPath = function (goatPath, start, end) {
-          var url =
-            site +
-            "/counter/" +
-            encodeURIComponent(goatPath) +
-            ".json?start=" +
-            start +
-            "&end=" +
-            end;
-          return fetch(url)
-            .then(function (res) {
-              if (!res.ok) throw new Error("Failed to fetch GoatCounter data");
-              return res.json();
-            })
-            .then(function (data) {
-              if (data && typeof data.count_unique === "number") return data.count_unique;
-              throw new Error("Invalid GoatCounter data");
-            });
+        var weekKey = function (d) {
+          return "w" + d.getFullYear() + "-" + pad2(getISOWeek(d));
         };
-
-        var fetchGoatCount = function (start, end) {
-          var tryIndex = function (idx) {
-            if (idx >= goatPaths.length) {
-              throw new Error("All GoatCounter paths failed");
-            }
-            return fetchGoatCountFromPath(goatPaths[idx], start, end).catch(function () {
-              return tryIndex(idx + 1);
-            });
-          };
-          return tryIndex(0);
+        var keys = {
+          all: "all",
+          day: "d" + toYMD(today),
+          week: weekKey(today),
         };
-
-        var hitCountApi = function (key) {
-          var url = "https://api.countapi.xyz/hit/" + namespace + "/" + key;
+        var cacheKey = "visitor-count-cache-" + safePath;
+        var fetchCountApi = function (mode, key) {
+          var url = apiBase + "/" + mode + "/" + encodeURIComponent(namespace) + "/" + encodeURIComponent(key);
           return fetch(url)
             .then(function (res) {
               if (!res.ok) {
-                throw new Error("CountAPI failed");
+                throw new Error("Counter API request failed");
               }
               return res.json();
             })
@@ -1006,118 +968,55 @@
               if (data && typeof data.value === "number") {
                 return data.value;
               }
-              throw new Error("Invalid CountAPI data");
+              throw new Error("Invalid counter API response");
             });
         };
-
-        var getCountApi = function (key) {
-          var url = "https://api.countapi.xyz/get/" + namespace + "/" + key;
-          return fetch(url)
-            .then(function (res) {
-              if (!res.ok) {
-                throw new Error("CountAPI key not found");
-              }
-              return res.json();
-            })
-            .then(function (data) {
-              if (data && typeof data.value === "number") {
-                return data.value;
-              }
-              throw new Error("Invalid CountAPI data");
-            });
-        };
-
-        var localDayKey = "local-counter-days-" + safePath;
-        var localSeenKey = "local-counter-seen-" + safePath + "-" + toYMD(today);
-        var parseLocalDays = function () {
+        var readCache = function () {
           try {
-            return JSON.parse(localStorage.getItem(localDayKey) || "{}");
+            return JSON.parse(localStorage.getItem(cacheKey) || "{}");
           } catch (e) {
             return {};
           }
         };
-        var toLocalDate = function (ymd) {
-          return new Date(ymd + "T00:00:00");
+        var writeCache = function (data) {
+          localStorage.setItem(cacheKey, JSON.stringify(data));
         };
-        var getLocalStats = function (increment) {
-          var days = parseLocalDays();
-          if (increment && !sessionStorage.getItem(localSeenKey)) {
-            var ymd = toYMD(today);
-            days[ymd] = (days[ymd] || 0) + 1;
-            sessionStorage.setItem(localSeenKey, "1");
+        var ensureHitOnce = function (key) {
+          var marker = "visitor-hit-" + safePath + "-" + key;
+          if (sessionStorage.getItem(marker)) {
+            return fetchCountApi("get", key);
           }
-          var minKeep = new Date(today);
-          minKeep.setDate(minKeep.getDate() - 31);
-          Object.keys(days).forEach(function (key) {
-            if (toLocalDate(key) < minKeep) delete days[key];
+          return fetchCountApi("hit", key).then(function (value) {
+            sessionStorage.setItem(marker, "1");
+            return value;
           });
-          localStorage.setItem(localDayKey, JSON.stringify(days));
-          var total = 0;
-          var daily = days[toYMD(today)] || 0;
-          var weekly = 0;
-          var weekMin = new Date(today);
-          weekMin.setDate(weekMin.getDate() - 6);
-          Object.keys(days).forEach(function (key) {
-            var value = Number(days[key]) || 0;
-            total += value;
-            if (toLocalDate(key) >= weekMin) weekly += value;
-          });
-          return { total: total, daily: daily, weekly: weekly };
         };
 
-        getCountApi("all-" + safePath)
-          .then(function (v) {
-            setText("total-count", v);
-          })
-          .catch(function () {
-            setText("total-count", "0");
-          });
+        Promise.allSettled([
+          ensureHitOnce(keys.all),
+          ensureHitOnce(keys.day),
+          ensureHitOnce(keys.week),
+        ]).then(function (results) {
+          var next = readCache();
+          if (results[0].status === "fulfilled") next.all = results[0].value;
+          if (results[1].status === "fulfilled") next.day = results[1].value;
+          if (results[2].status === "fulfilled") next.week = results[2].value;
 
-        Promise.all([
-          fetchGoatCount(toYMD(dayStart), toYMD(today)),
-          fetchGoatCount(toYMD(weekStart), toYMD(today)),
-        ])
-          .then(function (counts) {
-            setText("daily-count", counts[0]);
-            setText("weekly-count", counts[1]);
-            if (sourceEl) sourceEl.textContent = "Source: GoatCounter unique visitors";
-          })
-          .catch(function () {
-            var weekKey = "w" + today.getFullYear() + "-" + getISOWeek(today) + safePath;
-            Promise.allSettled([
-              hitCountApi("all-" + safePath),
-              hitCountApi("d" + toYMD(today) + safePath),
-              hitCountApi(weekKey),
-            ])
-              .then(function (results) {
-                var hasAny = false;
-                if (results[0].status === "fulfilled") {
-                  setText("total-count", results[0].value);
-                  hasAny = true;
-                }
-                if (results[1].status === "fulfilled") {
-                  setText("daily-count", results[1].value);
-                  hasAny = true;
-                }
-                if (results[2].status === "fulfilled") {
-                  setText("weekly-count", results[2].value);
-                  hasAny = true;
-                }
-                if (hasAny) {
-                  var localRead = getLocalStats(false);
-                  if (results[0].status !== "fulfilled") setText("total-count", localRead.total);
-                  if (results[1].status !== "fulfilled") setText("daily-count", localRead.daily);
-                  if (results[2].status !== "fulfilled") setText("weekly-count", localRead.weekly);
-                  if (sourceEl) sourceEl.textContent = "Source: CountAPI pageviews fallback";
-                  return;
-                }
-                var local = getLocalStats(true);
-                setText("total-count", local.total);
-                setText("daily-count", local.daily);
-                setText("weekly-count", local.weekly);
-                if (sourceEl) sourceEl.textContent = "Source: Local browser fallback";
-              });
-          });
+          if (typeof next.all === "number") setText("total-count", next.all);
+          if (typeof next.day === "number") setText("daily-count", next.day);
+          if (typeof next.week === "number") setText("weekly-count", next.week);
+
+          if (
+            typeof next.all === "number" ||
+            typeof next.day === "number" ||
+            typeof next.week === "number"
+          ) {
+            writeCache(next);
+            if (sourceEl) sourceEl.textContent = "Source: CountAPI";
+          } else if (sourceEl) {
+            sourceEl.textContent = "Visitor counter temporarily unavailable";
+          }
+        });
       })();
     </script>
   </body>
