@@ -85,7 +85,7 @@
             <li>
               <span class="news-date">Apr</span>
               <span class="news-text">
-                One paper is selected as ICML 2026 Spotlight.
+                One paper is accepted to ICML 2026.
               </span>
             </li>
             <li>
@@ -209,11 +209,11 @@
                 </div>
                 <div class="pub-links">
                   <a
-                    href="https://arxiv.org/abs/2604.16587"
+                    href="https://arxiv.org/pdf/2604.16587"
                     class="inline-link"
                     target="_blank"
                     rel="noreferrer"
-                    >arXiv</a
+                    >Google Scholar</a
                   >
                 </div>
               </div>
@@ -237,7 +237,15 @@
                   Y Kim<sup>*</sup>, Y Zhang<sup>*</sup>, H Liu, A Jung, S Lee,
                   S Hong · CVPR 2026
                 </div>
-                <div class="pub-links"></div>
+                <div class="pub-links">
+                  <a
+                    href="https://arxiv.org/pdf/2603.00207"
+                    class="inline-link"
+                    target="_blank"
+                    rel="noreferrer"
+                    >Google Scholar</a
+                  >
+                </div>
               </div>
             </li>
             <li class="pub-item">
@@ -259,7 +267,15 @@
                   SS Ghosal<sup>*</sup>, Y Kim<sup>*</sup>, Z Li, R Chaudhry,
                   L Xu, H Zhang, J Zablocki, Y Xing, Q Zhang · CVPR 2026
                 </div>
-                <div class="pub-links"></div>
+                <div class="pub-links">
+                  <a
+                    href="https://arxiv.org/pdf/2509.24837"
+                    class="inline-link"
+                    target="_blank"
+                    rel="noreferrer"
+                    >Google Scholar</a
+                  >
+                </div>
               </div>
             </li>
           </ul>
@@ -908,7 +924,6 @@
         var site = "https://youngryan1993.goatcounter.com";
         var rawPath = location.pathname || "/";
         var normalizedPath = rawPath.replace(/\/index\.html?$/, "/");
-        var path = encodeURIComponent(normalizedPath);
         var sourceEl = document.getElementById("stats-source");
         var host = location.hostname || "local";
         var safePath = normalizedPath.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -933,28 +948,49 @@
         var weekStart = new Date(today);
         weekStart.setDate(weekStart.getDate() - 7);
 
-        var fetchGoatCount = function (start, end) {
+        var goatPaths = [normalizedPath];
+        if (normalizedPath === "/") {
+          goatPaths.push("/index.html");
+        } else if (normalizedPath.charAt(normalizedPath.length - 1) === "/") {
+          goatPaths.push(normalizedPath + "index.html");
+        } else {
+          goatPaths.push(normalizedPath + "/");
+        }
+        goatPaths.push("/");
+        goatPaths = goatPaths.filter(function (value, index, self) {
+          return self.indexOf(value) === index;
+        });
+
+        var fetchGoatCountFromPath = function (goatPath, start, end) {
           var url =
             site +
             "/counter/" +
-            path +
+            encodeURIComponent(goatPath) +
             ".json?start=" +
             start +
             "&end=" +
             end;
           return fetch(url)
             .then(function (res) {
-              if (!res.ok) {
-                throw new Error("Failed to fetch GoatCounter data");
-              }
+              if (!res.ok) throw new Error("Failed to fetch GoatCounter data");
               return res.json();
             })
             .then(function (data) {
-              if (data && typeof data.count_unique === "number") {
-                return data.count_unique;
-              }
+              if (data && typeof data.count_unique === "number") return data.count_unique;
               throw new Error("Invalid GoatCounter data");
             });
+        };
+
+        var fetchGoatCount = function (start, end) {
+          var tryIndex = function (idx) {
+            if (idx >= goatPaths.length) {
+              throw new Error("All GoatCounter paths failed");
+            }
+            return fetchGoatCountFromPath(goatPaths[idx], start, end).catch(function () {
+              return tryIndex(idx + 1);
+            });
+          };
+          return tryIndex(0);
         };
 
         var hitCountApi = function (key) {
@@ -991,6 +1027,44 @@
             });
         };
 
+        var localDayKey = "local-counter-days-" + safePath;
+        var localSeenKey = "local-counter-seen-" + safePath + "-" + toYMD(today);
+        var parseLocalDays = function () {
+          try {
+            return JSON.parse(localStorage.getItem(localDayKey) || "{}");
+          } catch (e) {
+            return {};
+          }
+        };
+        var toLocalDate = function (ymd) {
+          return new Date(ymd + "T00:00:00");
+        };
+        var getLocalStats = function (increment) {
+          var days = parseLocalDays();
+          if (increment && !sessionStorage.getItem(localSeenKey)) {
+            var ymd = toYMD(today);
+            days[ymd] = (days[ymd] || 0) + 1;
+            sessionStorage.setItem(localSeenKey, "1");
+          }
+          var minKeep = new Date(today);
+          minKeep.setDate(minKeep.getDate() - 31);
+          Object.keys(days).forEach(function (key) {
+            if (toLocalDate(key) < minKeep) delete days[key];
+          });
+          localStorage.setItem(localDayKey, JSON.stringify(days));
+          var total = 0;
+          var daily = days[toYMD(today)] || 0;
+          var weekly = 0;
+          var weekMin = new Date(today);
+          weekMin.setDate(weekMin.getDate() - 6);
+          Object.keys(days).forEach(function (key) {
+            var value = Number(days[key]) || 0;
+            total += value;
+            if (toLocalDate(key) >= weekMin) weekly += value;
+          });
+          return { total: total, daily: daily, weekly: weekly };
+        };
+
         getCountApi("all-" + safePath)
           .then(function (v) {
             setText("total-count", v);
@@ -1010,22 +1084,38 @@
           })
           .catch(function () {
             var weekKey = "w" + today.getFullYear() + "-" + getISOWeek(today) + safePath;
-            Promise.all([
+            Promise.allSettled([
               hitCountApi("all-" + safePath),
               hitCountApi("d" + toYMD(today) + safePath),
               hitCountApi(weekKey),
             ])
-              .then(function (values) {
-                setText("total-count", values[0]);
-                setText("daily-count", values[1]);
-                setText("weekly-count", values[2]);
-                if (sourceEl) sourceEl.textContent = "Source: CountAPI pageviews fallback";
-              })
-              .catch(function () {
-                setText("total-count", "-");
-                setText("daily-count", "-");
-                setText("weekly-count", "-");
-                if (sourceEl) sourceEl.textContent = "Visitor counter temporarily unavailable";
+              .then(function (results) {
+                var hasAny = false;
+                if (results[0].status === "fulfilled") {
+                  setText("total-count", results[0].value);
+                  hasAny = true;
+                }
+                if (results[1].status === "fulfilled") {
+                  setText("daily-count", results[1].value);
+                  hasAny = true;
+                }
+                if (results[2].status === "fulfilled") {
+                  setText("weekly-count", results[2].value);
+                  hasAny = true;
+                }
+                if (hasAny) {
+                  var localRead = getLocalStats(false);
+                  if (results[0].status !== "fulfilled") setText("total-count", localRead.total);
+                  if (results[1].status !== "fulfilled") setText("daily-count", localRead.daily);
+                  if (results[2].status !== "fulfilled") setText("weekly-count", localRead.weekly);
+                  if (sourceEl) sourceEl.textContent = "Source: CountAPI pageviews fallback";
+                  return;
+                }
+                var local = getLocalStats(true);
+                setText("total-count", local.total);
+                setText("daily-count", local.daily);
+                setText("weekly-count", local.weekly);
+                if (sourceEl) sourceEl.textContent = "Source: Local browser fallback";
               });
           });
       })();
