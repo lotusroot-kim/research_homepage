@@ -112,6 +112,18 @@ h1 {
   margin: 0 0 20px;
 }
 
+.announcement {
+  margin: -6px 0 20px;
+  font-size: 16px;
+  color: crimson;
+  font-weight: 600;
+}
+
+.announcement a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .cta-row {
   display: flex;
   gap: 12px;
