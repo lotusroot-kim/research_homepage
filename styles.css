@@ -117,10 +117,6 @@ p.announcement {
   font-size: 16px;
   color: #dc143c !important;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 p.announcement a,
@@ -132,7 +128,8 @@ p.announcement a:visited {
 .announcement-logo {
   width: 20px;
   height: 20px;
-  flex: 0 0 auto;
+  margin-right: 8px;
+  vertical-align: -3px;
 }
 
 .cta-row {
