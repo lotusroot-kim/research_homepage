@@ -112,16 +112,27 @@ h1 {
   margin: 0 0 20px;
 }
 
-.announcement {
+p.announcement {
   margin: -6px 0 20px;
   font-size: 16px;
-  color: crimson;
+  color: #dc143c !important;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.announcement a {
-  color: inherit;
+p.announcement a,
+p.announcement a:visited {
+  color: #dc143c !important;
   text-decoration: underline;
+}
+
+.announcement-logo {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
 }
 
 .cta-row {
